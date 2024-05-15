@@ -34,7 +34,7 @@ const AgregarActualizar = () => {
         if (snapshot.exists()) {
             setData({ ...snapshot.data() });
         }
-    }
+    };
 
     useEffect(() => {
         const uploadFile = () => {
