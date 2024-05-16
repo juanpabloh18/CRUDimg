@@ -44,9 +44,24 @@ const Home = () => {
                                         style={{
                                             height: "150px",
                                             width: "150px",
-                                            borderRadius:"50",
+                                            borderRadius: "50",
                                         }}
                                     />
+                                    <Card.Header style={{ marginTop: "10px" }}>
+                                        {item.name}
+                                    </Card.Header>
+                                    <Card.Description>{item.info}</Card.Description>
+                                </Card.Content>
+                                <Card.Content extra>
+                                    <div>
+                                        <Button
+                                            color="green"
+                                            onClick={() => navigate(`/Actualizar/${item.id}`)}
+                                        >
+                                            actualizar
+                                        </Button>
+                                        <Button color="blue">Ver</Button>
+                                    </div>
                                 </Card.Content>
                             </Card>
                         </Grid.Column>
