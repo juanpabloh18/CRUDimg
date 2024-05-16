@@ -22,6 +22,19 @@ const AgregarActualizar = () => {
     const [errors, setErros] = useState({});
     const [isSubmit, setIssubmit] = useState(false);
     const navigate = useNavigate();
+    const { id } = useParams();
+
+    useEffect(() => {
+        id && getSingleUser();
+    }, [id])
+
+    const getSingleUser = async () => {
+        const docRef = doc(db, "users", id);
+        const snapshot = await getDoc(docRef);
+        if (snapshot.exists()) {
+            setData({ ...snapshot.data() });
+        }
+    };
 
     useEffect(() => {
         const uploadFile = () => {
@@ -29,30 +42,33 @@ const AgregarActualizar = () => {
             const storageRef = ref(storage, file.name);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
-            uploadTask.on("state_changed", (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                setProgress(progress);
-                switch (snapshot.state) {
-                    case "paused":
-                        console.log("La carga esta pausada");
-                        break;
-                    case "running":
-                        console.log("La carga esta ejecutando");
-                    default:
-                        break;
-                }
-            }, (error) => {
-                console.log(error)
-            },
-                () => {
-                    getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                        setData((prev) => ({ ...prev, img: downloadURL }))
-                    });
-                }
-            );
+            uploadTask.on
+                ("state_changed",
+                    (snapshot) => {
+                        const progress =
+                            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        setProgress(progress);
+                        switch (snapshot.state) {
+                            case "paused":
+                                console.log("La carga esta pausada");
+                                break;
+                            case "running":
+                                console.log("La carga esta ejecutando");
+                            default:
+                                break;
+                        }
+                    }, (error) => {
+                        console.log(error)
+                    },
+                    () => {
+                        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                            setData((prev) => ({ ...prev, img: downloadURL }))
+                        });
+                    }
+                );
         };
 
-        file && uploadFile();   
+        file && uploadFile();
     }, [file]);
 
     const handleChange = (e) => {
@@ -80,16 +96,33 @@ const AgregarActualizar = () => {
         return errors;
     };
 
-    const handleSubmit =  async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         let errors = validate();
         if (Object.keys(errors).length) return setErros(errors);
         setIssubmit(true);
-          await addDoc(collection(db, "users"), {
-            ...data,
-            timestamp: serverTimestamp()
-          })
-          navigate("/");
+        if (!id) {
+            try {
+                await addDoc(collection(db, "users"), {
+                    ...data,
+                    timestamp: serverTimestamp()
+                });
+            } catch (error) {
+                console.log(error);
+            }
+
+        } else {
+            try {
+                await updateDoc(doc(db, "users", id), {
+                    ...data,
+                    timestamp: serverTimestamp()
+                });
+            } catch (error) {
+                console.log(error);
+            }
+        }
+
+        navigate("/");
     };
 
     return (
@@ -100,7 +133,7 @@ const AgregarActualizar = () => {
                         <div>
                             {isSubmit ? <Loader active inline="centered" size="huge" /> : (
                                 <>
-                                    <h2>Agregar item</h2>
+                                    <h2>{id ? "actualizar usuario" : "agregar usuario"}</h2>
                                     <Form onSubmit={handleSubmit}>
                                         <Form.Input
                                             label="Name"
