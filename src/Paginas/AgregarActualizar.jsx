@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button, Form, Grid, Loader } from "semantic-ui-react";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL, deleteObject } from "firebase/storage";
 import { db, storage } from "../firebase/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useNavigate, useParams } from "react-router-dom";
@@ -42,34 +42,33 @@ const AgregarActualizar = () => {
             const storageRef = ref(storage, file.name);
             const uploadTask = uploadBytesResumable(storageRef, file);
 
-            uploadTask.on
-                ("state_changed",
-                    (snapshot) => {
-                        const progress =
-                            (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                        setProgress(progress);
-                        switch (snapshot.state) {
-                            case "paused":
-                                console.log("La carga esta pausada");
-                                break;
-                            case "running":
-                                console.log("La carga esta ejecutando");
-                            default:
-                                break;
-                        }
-                    }, (error) => {
-                        console.log(error)
-                    },
-                    () => {
-                        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                            setData((prev) => ({ ...prev, img: downloadURL }))
-                        });
+            uploadTask.on("state_changed",
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setProgress(progress);
+                    switch (snapshot.state) {
+                        case "paused":
+                            console.log("La carga esta pausada");
+                            break;
+                        case "running":
+                            console.log("La carga esta ejecutando");
+                        default:
+                            break;
                     }
-                );
+                }, (error) => {
+                    console.log(error);
+                },
+                () => {
+                    getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
+                        setData((prev) => ({ ...prev, img: downloadURL }));
+                    });
+                }
+            );
         };
 
         file && uploadFile();
     }, [file]);
+
 
     const handleChange = (e) => {
         setData({ ...data, [e.target.name]: e.target.value });
@@ -101,29 +100,59 @@ const AgregarActualizar = () => {
         let errors = validate();
         if (Object.keys(errors).length) return setErros(errors);
         setIssubmit(true);
-        if (!id) {
-            try {
-                await addDoc(collection(db, "users"), {
-                    ...data,
-                    timestamp: serverTimestamp()
-                });
-            } catch (error) {
-                console.log(error);
+    
+        if (file) {
+            const name = id ? id : new Date().getTime(); // Use 'id' or current timestamp as part of the file name
+            const storageRef = ref(storage, `images/${name}`);
+            
+            // Delete old image if exists
+            if (id) {
+                const docRef = doc(db, "users", id);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && docSnap.data().img) {
+                    const oldImageRef = ref(storage, docSnap.data().img);
+                    await deleteObject(oldImageRef);
+                }
             }
-
+    
+            const uploadTask = uploadBytesResumable(storageRef, file);
+    
+            uploadTask.on("state_changed",
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    setProgress(progress);
+                },
+                (error) => {
+                    console.log(error);
+                    setIssubmit(false);
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    await saveData(downloadURL);
+                }
+            );
         } else {
-            try {
-                await updateDoc(doc(db, "users", id), {
-                    ...data,
-                    timestamp: serverTimestamp()
-                });
-            } catch (error) {
-                console.log(error);
-            }
+            await saveData();
         }
-
-        navigate("/");
     };
+    
+    const saveData = async (imgURL = null) => {
+        const updatedData = imgURL ? { ...data, img: imgURL, timestamp: serverTimestamp() } : { ...data, timestamp: serverTimestamp() };
+    
+        try {
+            if (!id) {
+                await addDoc(collection(db, "users"), updatedData);
+            } else {
+                await updateDoc(doc(db, "users", id), updatedData);
+            }
+            navigate("/");
+        } catch (error) {
+            console.log(error);
+            setIssubmit(false);
+        }
+    };
+    
+
 
     return (
         <div>
