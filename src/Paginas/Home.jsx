@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { db } from "../firebase/firebase";
-import { Button, Card, Grid, Container, Image, GridColumn, CardDescription, Item, Modal, List } from "semantic-ui-react";
+import { Button, Card, Grid, Container, Image} from "semantic-ui-react";
 import { useNavigate } from "react-router-dom";
 import { collection, deleteDoc, doc, onSnapshot } from "firebase/firestore";
 import ModalComponente from "../Componentes/ModalComponente";
