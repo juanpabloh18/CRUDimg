@@ -1,7 +1,6 @@
 import React from "react";
 import { Modal, Header, Image, Button } from "semantic-ui-react";
 
-
 const ModalComponente = ({
     open,
     setOpen,
@@ -33,8 +32,8 @@ const ModalComponente = ({
                     color="red"
                     content="Delete"
                     labelPosition="right"
-                    icon = "checkmark"
-                    onClick={() => handleDelete(id)}
+                    icon="checkmark"
+                    onClick={() => handleDelete(id, img)}
                 />
             </Modal.Actions>
         </Modal>
