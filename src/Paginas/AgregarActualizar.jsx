@@ -102,10 +102,10 @@ const AgregarActualizar = () => {
         setIssubmit(true);
     
         if (file) {
-            const name = id ? id : new Date().getTime(); // Use 'id' or current timestamp as part of the file name
+            const name = id ? id : new Date().getTime(); 
             const storageRef = ref(storage, `images/${name}`);
             
-            // Delete old image if exists
+            
             if (id) {
                 const docRef = doc(db, "users", id);
                 const docSnap = await getDoc(docRef);
