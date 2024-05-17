@@ -5,28 +5,27 @@ import { db, storage } from "../firebase/firebase";
 import { addDoc, collection, doc, getDoc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { useNavigate, useParams } from "react-router-dom";
 
-
 const initialState = {
     name: "",
     email: "",
     info: "",
-    contact: ""
-}
+    contact: "",
+    img: ""
+};
 
 const AgregarActualizar = () => {
-
     const [data, setData] = useState(initialState);
     const { name, email, info, contact } = data;
     const [file, setFile] = useState(null);
     const [progress, setProgress] = useState(null);
-    const [errors, setErros] = useState({});
-    const [isSubmit, setIssubmit] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [isSubmit, setIsSubmit] = useState(false);
     const navigate = useNavigate();
     const { id } = useParams();
 
     useEffect(() => {
         id && getSingleUser();
-    }, [id])
+    }, [id]);
 
     const getSingleUser = async () => {
         const docRef = doc(db, "users", id);
@@ -36,39 +35,35 @@ const AgregarActualizar = () => {
         }
     };
 
-    useEffect(() => {
-        const uploadFile = () => {
-            const name = new Date().getTime() + file.name;
-            const storageRef = ref(storage, file.name);
-            const uploadTask = uploadBytesResumable(storageRef, file);
+    const handleFileUpload = async () => {
+        if (id && data.img) {
+            const oldImageRef = ref(storage, data.img);
+            await deleteObject(oldImageRef).catch((error) => console.log("Error eliminando imagen antigua:", error));
+        }
 
-            uploadTask.on("state_changed",
+        const fileName = new Date().getTime() + "_" + file.name;
+        const storageRef = ref(storage, `images/${fileName}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        return new Promise((resolve, reject) => {
+            uploadTask.on(
+                "state_changed",
                 (snapshot) => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
                     setProgress(progress);
-                    switch (snapshot.state) {
-                        case "paused":
-                            console.log("La carga esta pausada");
-                            break;
-                        case "running":
-                            console.log("La carga esta ejecutando");
-                        default:
-                            break;
-                    }
-                }, (error) => {
-                    console.log(error);
                 },
-                () => {
-                    getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                        setData((prev) => ({ ...prev, img: downloadURL }));
-                    });
+                (error) => {
+                    console.log(error);
+                    setIsSubmit(false);
+                    reject(error);
+                },
+                async () => {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    resolve(downloadURL);
                 }
             );
-        };
-
-        file && uploadFile();
-    }, [file]);
-
+        });
+    };
 
     const handleChange = (e) => {
         setData({ ...data, [e.target.name]: e.target.value });
@@ -77,19 +72,19 @@ const AgregarActualizar = () => {
     const validate = () => {
         let errors = {};
         if (!name) {
-            errors.name = "nombre es requerido";
+            errors.name = "Nombre es requerido";
         }
 
         if (!email) {
-            errors.email = "email es requerido";
+            errors.email = "Email es requerido";
         }
 
         if (!info) {
-            errors.info = "la información es requerida";
+            errors.info = "La información es requerida";
         }
 
         if (!contact) {
-            errors.contact = "contacto es requerido";
+            errors.contact = "Contacto es requerido";
         }
 
         return errors;
@@ -98,47 +93,26 @@ const AgregarActualizar = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         let errors = validate();
-        if (Object.keys(errors).length) return setErros(errors);
-        setIssubmit(true);
-    
+        if (Object.keys(errors).length) return setErrors(errors);
+        setIsSubmit(true);
+
+        let imgURL = data.img;
+
         if (file) {
-            const name = id ? id : new Date().getTime(); 
-            const storageRef = ref(storage, `images/${name}`);
-            
-            
-            if (id) {
-                const docRef = doc(db, "users", id);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists() && docSnap.data().img) {
-                    const oldImageRef = ref(storage, docSnap.data().img);
-                    await deleteObject(oldImageRef);
-                }
+            try {
+                imgURL = await handleFileUpload();
+            } catch (error) {
+                console.log("Error en la subida del archivo:", error);
+                return;
             }
-    
-            const uploadTask = uploadBytesResumable(storageRef, file);
-    
-            uploadTask.on("state_changed",
-                (snapshot) => {
-                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    setProgress(progress);
-                },
-                (error) => {
-                    console.log(error);
-                    setIssubmit(false);
-                },
-                async () => {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    await saveData(downloadURL);
-                }
-            );
-        } else {
-            await saveData();
         }
-    };
-    
-    const saveData = async (imgURL = null) => {
-        const updatedData = imgURL ? { ...data, img: imgURL, timestamp: serverTimestamp() } : { ...data, timestamp: serverTimestamp() };
-    
+
+        const updatedData = {
+            ...data,
+            img: imgURL,
+            timestamp: serverTimestamp(),
+        };
+
         try {
             if (!id) {
                 await addDoc(collection(db, "users"), updatedData);
@@ -147,12 +121,10 @@ const AgregarActualizar = () => {
             }
             navigate("/");
         } catch (error) {
-            console.log(error);
-            setIssubmit(false);
+            console.log("Error al guardar los datos:", error);
+            setIsSubmit(false);
         }
     };
-    
-
 
     return (
         <div>
@@ -162,7 +134,7 @@ const AgregarActualizar = () => {
                         <div>
                             {isSubmit ? <Loader active inline="centered" size="huge" /> : (
                                 <>
-                                    <h2>{id ? "actualizar usuario" : "agregar usuario"}</h2>
+                                    <h2>{id ? "Actualizar Usuario" : "Agregar Usuario"}</h2>
                                     <Form onSubmit={handleSubmit}>
                                         <Form.Input
                                             label="Name"
@@ -198,7 +170,7 @@ const AgregarActualizar = () => {
                                             value={contact}
                                         />
                                         <Form.Input
-                                            label="subir"
+                                            label="Subir"
                                             type="file"
                                             onChange={(e) => setFile(e.target.files[0])}
                                         />
@@ -215,10 +187,9 @@ const AgregarActualizar = () => {
                         </div>
                     </Grid.Column>
                 </Grid.Row>
-
             </Grid>
         </div>
-
     );
 };
+
 export default AgregarActualizar;
