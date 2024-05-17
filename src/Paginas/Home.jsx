@@ -51,7 +51,7 @@ const Home = () => {
     };
     return (
         <Container>
-            <Card.Group>
+            
                 <Grid columns={3} stackable>
                     {users && users.map((item) => (
                         <Grid.Column>
@@ -96,7 +96,7 @@ const Home = () => {
                         </Grid.Column>
                     ))}
                 </Grid>
-            </Card.Group>
+            
         </Container>
     )
 };
