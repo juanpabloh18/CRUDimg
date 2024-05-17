@@ -7,6 +7,8 @@ import ModalComponente from "../Componentes/ModalComponente";
 
 const Home = () => {
     const [users, setUsers] = useState([]);
+    const [open, setOpen] = useState(false);
+    const [user, setUser] = useState({});
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
@@ -30,6 +32,23 @@ const Home = () => {
             unsub();
         };
     }, []);
+
+    const handleModal = (item) => {
+        setOpen(true);
+        setUser(item);
+    };
+
+    const handleDelete = async (id) => {
+        if(window.confirm("¿seguro que quieres eliminar este usuario?")){
+            try{
+                setOpen(false);
+                await deleteDoc(doc(db, "users", id));
+                setUser(users.filter((user) => user.id !== id));
+            } catch(err){
+                console.log(err);
+            }
+        }
+    };
     return (
         <Container>
             <Card.Group>
@@ -60,7 +79,17 @@ const Home = () => {
                                         >
                                             actualizar
                                         </Button>
-                                        <Button color="blue">Ver</Button>
+                                        <Button color="blue" onClick={() => handleModal(item)}>
+                                            Ver
+                                        </Button>
+                                        {open && (
+                                            <ModalComponente
+                                                open={open}
+                                                setOpen={setOpen}
+                                                handleDelete={handleDelete}
+                                                {...user}
+                                            />
+                                        )}
                                     </div>
                                 </Card.Content>
                             </Card>
