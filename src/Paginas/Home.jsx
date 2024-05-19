@@ -44,16 +44,16 @@ const Home = () => {
             try {
                 setOpen(false);
 
-                // Eliminar la imagen del almacenamiento
+                
                 if (imgURL) {
                     const imageRef = ref(storage, imgURL);
                     await deleteObject(imageRef);
                 }
 
-                // Eliminar el documento de Firestore
+                
                 await deleteDoc(doc(db, "users", id));
 
-                // Actualizar el estado local de usuarios
+                
                 setUsers(users.filter((user) => user.id !== id));
             } catch (err) {
                 console.log(err);
@@ -67,7 +67,7 @@ const Home = () => {
                 {users && users.map((item) => (
                     <Grid.Column key={item.id}>
                         <Card>
-                            <Card.Content>
+                            <Card.Content  style={{ textAlign: "center", marginTop: "10px" }}>
                                 <Image
                                     src={item.img}
                                     size="medium"
@@ -80,10 +80,10 @@ const Home = () => {
                                 <Card.Header style={{ marginTop: "10px" }}>
                                     {item.name}
                                 </Card.Header>
-                                <Card.Description>{item.info}</Card.Description>
+                                <Card.Description style={{ textAlign: "center" }}>{item.info}</Card.Description>
                             </Card.Content>
                             <Card.Content extra>
-                                <div>
+                                <div style={{ display: "flex", justifyContent: "center", gap: "10px" }}>
                                     <Button
                                         color="green"
                                         onClick={() => navigate(`/Actualizar/${item.id}`)}
